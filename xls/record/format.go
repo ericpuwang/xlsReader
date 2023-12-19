@@ -3,15 +3,15 @@ package record
 import (
 	"bytes"
 	"fmt"
+	"strconv"
+	"strings"
+
 	"github.com/metakeule/fmtdate"
 	"github.com/shakinm/xlsReader/helpers"
 	"github.com/shakinm/xlsReader/xls/structure"
-	"strconv"
-	"strings"
 )
 
-//FORMAT: Number Format
-
+// FORMAT: Number Format
 var FormatRecord = []byte{0x1E, 0x04} //(41Eh)
 
 /*
@@ -45,10 +45,9 @@ type Format struct {
 }
 
 func (r *Format) Read(stream []byte, vers []byte) {
-
 	r.vers = vers
 
-	if bytes.Compare(vers, FlagBIFF8) == 0 {
+	if bytes.Equal(vers, FlagBIFF8) {
 		copy(r.ifmt[:], stream[0:2])
 		_ = r.stFormat.Read(stream[2:])
 	} else {
@@ -57,17 +56,14 @@ func (r *Format) Read(stream []byte, vers []byte) {
 		r.rgb = make([]byte, helpers.BytesToUint16(r.cch[:]))
 		copy(r.rgb[:], stream[4:])
 	}
-
 }
 
 func (r *Format) String() string {
-
-	if bytes.Compare(r.vers, FlagBIFF8) == 0 {
+	if bytes.Equal(r.vers, FlagBIFF8) {
 		return r.stFormat.String()
 	}
 	strLen := helpers.BytesToUint16(r.cch[:])
 	return strings.TrimSpace(string(decodeWindows1251(bytes.Trim(r.rgb[:int(strLen)], "\x00"))))
-
 }
 
 func (r *Format) GetIndex() int {
@@ -111,7 +107,6 @@ func (r *Format) GetFormatString(data structure.CellData) string {
 				dateFormat = strings.ReplaceAll(dateFormat, "\\", "")
 				return fmtdate.Format(dateFormat, t)
 			}
-
 		}
 
 		return data.GetString()

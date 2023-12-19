@@ -28,12 +28,11 @@ func (s *Sector) getSector() *Sector {
 }
 
 func (s *Sector) findBlock(block []byte) bool {
-
-	var section = make([]byte, 0)
+	section := make([]byte, 0)
 	for _, value := range s.Data {
 		section = append(section, value)
 		if len(section) == 4 {
-			if bytes.Compare(section, block) == 0 {
+			if bytes.Equal(section, block) {
 				return true
 			}
 			section = make([]byte, 0)
@@ -48,7 +47,7 @@ func (s *Sector) getFATSectorLocations() []byte {
 }
 
 func (s *Sector) getMiniFatFATSectorLocations() []byte {
-	return s.Data[0 : s.SectorSize]
+	return s.Data[0:s.SectorSize]
 }
 
 func (s *Sector) getNextDIFATSectorLocation() []byte {
@@ -61,7 +60,6 @@ func NewSector(header *Header) Sector {
 		SectorSize: header.sectorSize(),
 		Data:       make([]byte, header.sectorSize()),
 	}
-
 }
 
 // NewMiniFatSector - Create new Sector struct for MiniFat
@@ -72,14 +70,12 @@ func NewMiniFatSector(header *Header) Sector {
 	}
 }
 
-
-func (s *Sector) values(length int) (res []uint32 ) {
-
-	  res = make([]uint32, length)
+func (s *Sector) values(length int) (res []uint32) {
+	res = make([]uint32, length)
 
 	buf := bytes.NewBuffer(s.Data)
 
-	 _ = binary.Read(buf, binary.LittleEndian, res) // nolint: gosec
+	_ = binary.Read(buf, binary.LittleEndian, res) // nolint: gosec
 
 	return res
 }

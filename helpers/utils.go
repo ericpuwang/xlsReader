@@ -19,17 +19,15 @@ func BytesToUint16(b []byte) uint16 {
 
 func BytesInSlice(a []byte, list [][]byte) bool {
 	for _, b := range list {
-		if bytes.Compare(a, b) == 0 {
+		if bytes.Equal(a, b) {
 			return true
 		}
 	}
 	return false
 }
 
-
 func BytesToUints16(b []byte) (res []uint16) {
-
-	var section = make([]byte, 0)
+	section := make([]byte, 0)
 	for _, value := range b {
 		section = append(section, value)
 		if len(section) == 2 {

@@ -49,15 +49,7 @@ func (rw *rw) GetCol(index int) (c structure.CellData, err error) {
 }
 
 func (rw *rw) GetCols() (cols []structure.CellData) {
-	var maxColKey int
-
-	for k := range rw.cols {
-		if k > maxColKey {
-			maxColKey = k
-		}
-	}
-
-	for i := 0; i <= maxColKey; i++ {
+	for i := 0; i <= rw.maxCol; i++ {
 		if rw.cols[i] == nil {
 			cols = append(cols, new(record.FakeBlank))
 		} else {
@@ -85,15 +77,7 @@ func (s *Sheet) GetRows() (rows []*rw) {
 
 // Get number of rows
 func (s *Sheet) GetNumberRows() (n int) {
-	var maxRowKey int
-
-	for k := range s.rows {
-		if k > maxRowKey {
-			maxRowKey = k
-		}
-	}
-
-	return maxRowKey + 1
+	return s.maxRow + 1
 }
 
 func (s *Sheet) read(stream []byte) (err error) { // nolint: gocyclo
@@ -109,7 +93,7 @@ Next:
 	recordDataLength := int64(helpers.BytesToUint16(stream[point+2 : point+4]))
 	sPoint = point + 4
 	records[fmt.Sprintf("%x", recordNumber)] = fmt.Sprintf("%x", recordNumber)
-	if bytes.Compare(recordNumber, record.AutofilterInfoRecord[:]) == 0 {
+	if bytes.Equal(recordNumber, record.AutofilterInfoRecord[:]) {
 		c := new(record.AutofilterInfo)
 		c.Read(stream[sPoint : sPoint+recordDataLength])
 		if c.GetCountEntries() > 0 {
@@ -122,7 +106,7 @@ Next:
 	}
 
 	// LABELSST - String constant that uses BIFF8 shared string table (new to BIFF8)
-	if bytes.Compare(recordNumber, record.LabelSStRecord[:]) == 0 {
+	if bytes.Equal(recordNumber, record.LabelSStRecord[:]) {
 		c := new(record.LabelSSt)
 		c.Read(stream[sPoint:sPoint+recordDataLength], &s.wb.sst)
 		s.addCell(c, c.GetRow(), c.GetCol())
@@ -130,8 +114,8 @@ Next:
 	}
 
 	// LABEL - Cell Value, String Constant
-	if bytes.Compare(recordNumber, record.LabelRecord[:]) == 0 {
-		if bytes.Compare(s.wb.vers[:], record.FlagBIFF8) == 0 {
+	if bytes.Equal(recordNumber, record.LabelRecord[:]) {
+		if bytes.Equal(s.wb.vers[:], record.FlagBIFF8) {
 			c := new(record.LabelBIFF8)
 			c.Read(stream[sPoint : sPoint+recordDataLength])
 			s.addCell(c, c.GetRow(), c.GetCol())
@@ -144,18 +128,18 @@ Next:
 		goto EIF
 	}
 
-	if bytes.Compare(recordNumber, []byte{0xFD, 0x00}) == 0 {
+	if bytes.Equal(recordNumber, []byte{0xFD, 0x00}) {
 		// todo: сделать
 		goto EIF
 	}
 
 	// ARRAY - An array-entered formula
-	if bytes.Compare(recordNumber, record.ArrayRecord[:]) == 0 {
+	if bytes.Equal(recordNumber, record.ArrayRecord[:]) {
 		// todo: сделать
 		goto EIF
 	}
 	// BLANK - An empty col
-	if bytes.Compare(recordNumber, record.BlankRecord[:]) == 0 {
+	if bytes.Equal(recordNumber, record.BlankRecord[:]) {
 		c := new(record.Blank)
 		c.Read(stream[sPoint : sPoint+recordDataLength])
 		s.addCell(c, c.GetRow(), c.GetCol())
@@ -163,7 +147,7 @@ Next:
 	}
 
 	// BOOLERR - A Boolean or error value
-	if bytes.Compare(recordNumber, record.BoolErrRecord[:]) == 0 {
+	if bytes.Equal(recordNumber, record.BoolErrRecord[:]) {
 		c := new(record.BoolErr)
 		c.Read(stream[sPoint : sPoint+recordDataLength])
 		s.addCell(c, c.GetRow(), c.GetCol())
@@ -171,13 +155,13 @@ Next:
 	}
 
 	// FORMULA - A col formula, stored as parse tokens
-	if bytes.Compare(recordNumber, record.FormulaRecord[:]) == 0 {
+	if bytes.Equal(recordNumber, record.FormulaRecord[:]) {
 		// todo: сделать
 		goto EIF
 	}
 
 	// NUMBER  - An IEEE floating-point number
-	if bytes.Compare(recordNumber, record.NumberRecord[:]) == 0 {
+	if bytes.Equal(recordNumber, record.NumberRecord[:]) {
 		c := new(record.Number)
 		c.Read(stream[sPoint : sPoint+recordDataLength])
 		s.addCell(c, c.GetRow(), c.GetCol())
@@ -185,7 +169,7 @@ Next:
 	}
 
 	// MULBLANK - Multiple empty rows (new to BIFF5)
-	if bytes.Compare(recordNumber, record.MulBlankRecord[:]) == 0 {
+	if bytes.Equal(recordNumber, record.MulBlankRecord[:]) {
 		c := new(record.MulBlank)
 		c.Read(stream[sPoint : sPoint+recordDataLength])
 		blRecords := c.GetArrayBlRecord()
@@ -196,7 +180,7 @@ Next:
 	}
 
 	// RK - An RK number
-	if bytes.Compare(recordNumber, record.RkRecord[:]) == 0 {
+	if bytes.Equal(recordNumber, record.RkRecord[:]) {
 		c := new(record.Rk)
 		c.Read(stream[sPoint : sPoint+recordDataLength])
 		s.addCell(c, c.GetRow(), c.GetCol())
@@ -204,7 +188,7 @@ Next:
 	}
 
 	// MULRK - Multiple RK numbers (new to BIFF5)
-	if bytes.Compare(recordNumber, record.MulRKRecord[:]) == 0 {
+	if bytes.Equal(recordNumber, record.MulRKRecord[:]) {
 		c := new(record.MulRk)
 		c.Read(stream[sPoint : sPoint+recordDataLength])
 		rkRecords := c.GetArrayRKRecord()
@@ -216,30 +200,30 @@ Next:
 	}
 
 	// RSTRING - Cell with character formatting
-	if bytes.Compare(recordNumber, record.RStringRecord[:]) == 0 {
+	if bytes.Equal(recordNumber, record.RStringRecord[:]) {
 		// todo: сделать
 		goto EIF
 	}
 
 	// SHRFMLA - A shared formula (new to BIFF5)
-	if bytes.Compare(recordNumber, record.SharedFormulaRecord[:]) == 0 {
+	if bytes.Equal(recordNumber, record.SharedFormulaRecord[:]) {
 		// todo: сделать
 		goto EIF
 	}
 
 	// STRING - A string that represents the result of a formula
-	if bytes.Compare(recordNumber, record.StringRecord[:]) == 0 {
+	if bytes.Equal(recordNumber, record.StringRecord[:]) {
 		// todo: сделать
 		goto EIF
 	}
 
-	if bytes.Compare(recordNumber, record.RowRecord[:]) == 0 {
+	if bytes.Equal(recordNumber, record.RowRecord[:]) {
 		// todo: сделать
 		goto EIF
 	}
 
 	// EOF
-	if bytes.Compare(recordNumber, record.EOFRecord[:]) == 0 && recordDataLength == 0 {
+	if bytes.Equal(recordNumber, record.EOFRecord[:]) && recordDataLength == 0 {
 		eof = true
 	}
 EIF:

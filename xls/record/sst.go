@@ -1,9 +1,10 @@
 package record
 
 import (
+	"io"
+
 	"github.com/shakinm/xlsReader/helpers"
 	"github.com/shakinm/xlsReader/xls/structure"
-	"io"
 )
 
 // SST: Shared String Table
@@ -55,8 +56,7 @@ func abs(x int) int {
 	return x
 }
 
-func (s *SST) Read(readType string, grbit byte, prevLen int32) () {
-
+func (s *SST) Read(readType string, grbit byte, prevLen int32) {
 	defer r()
 
 	if len(s.RgbSrc) == 0 {
@@ -107,11 +107,11 @@ func (s *SST) Read(readType string, grbit byte, prevLen int32) () {
 			copy(_rgb.CRun[:], s.RgbSrc[iOft(&oft, 0):iOft(&oft, 2)])
 		}
 
-		if _rgb.FHighByte>>2&1 == 1 { //fExtSt  == 1
+		if _rgb.FHighByte>>2&1 == 1 { // fExtSt  == 1
 			copy(_rgb.CbExtRst[:], s.RgbSrc[iOft(&oft, 0):iOft(&oft, 4)])
 		}
 
-		//offset rgbSize
+		// offset rgbSize
 		_rgb.Rgb = make([]byte, uint32(rgbSize))
 		copy(_rgb.Rgb[0:], s.RgbSrc[iOft(&oft, 0):iOft(&oft, uint32(rgbSize))])
 
@@ -125,7 +125,7 @@ func (s *SST) Read(readType string, grbit byte, prevLen int32) () {
 			}
 		}
 
-		if _rgb.FHighByte>>2&1 == 1 { //fExtSt  == 1
+		if _rgb.FHighByte>>2&1 == 1 { // fExtSt  == 1
 			copy(_rgb.ExtRst.Reserved[:], s.RgbSrc[iOft(&oft, 0):iOft(&oft, 2)])
 			copy(_rgb.ExtRst.Cb[:], s.RgbSrc[iOft(&oft, 0):iOft(&oft, 2)])
 
@@ -142,7 +142,7 @@ func (s *SST) Read(readType string, grbit byte, prevLen int32) () {
 				_rgb.ExtRst.Rphssub.St.RgchData = append(_rgb.ExtRst.Rphssub.St.RgchData, s.RgbSrc[iOft(&oft, 0):iOft(&oft, 2)]...)
 			}
 
-			//The number of elements in this array is rphssub.crun
+			// The number of elements in this array is rphssub.crun
 			phRunsSizeL := helpers.BytesToUint16(_rgb.ExtRst.Rphssub.Crun[:])
 			if phRunsSizeL > 0 {
 				for i := uint16(0); i <= phRunsSizeL; i++ {
@@ -172,7 +172,6 @@ func (s *SST) Read(readType string, grbit byte, prevLen int32) () {
 		}
 
 	}
-
 }
 
 func iOft(offset *uint32, inc uint32) uint32 {

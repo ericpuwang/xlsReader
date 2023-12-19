@@ -3,10 +3,11 @@ package cfb
 import (
 	"bytes"
 	"encoding/binary"
-	"github.com/shakinm/xlsReader/helpers"
 	"io"
 	"os"
 	"path/filepath"
+
+	"github.com/shakinm/xlsReader/helpers"
 )
 
 // Cfb - Compound File Binary
@@ -36,7 +37,6 @@ func (cfb *Cfb) CloseFile() error {
 
 // OpenFile - Open document from the file
 func OpenFile(filename string) (cfb Cfb, err error) {
-
 	cfb.fLink, err = os.Open(filepath.Clean(filename))
 
 	if err != nil {
@@ -52,7 +52,6 @@ func OpenFile(filename string) (cfb Cfb, err error) {
 
 // OpenReader - Open document from the reader
 func OpenReader(reader io.ReadSeeker) (cfb Cfb, err error) {
-
 	cfb.file = reader
 
 	if err != nil {
@@ -65,7 +64,6 @@ func OpenReader(reader io.ReadSeeker) (cfb Cfb, err error) {
 }
 
 func open(cfb *Cfb) (err error) {
-
 	err = cfb.getHeader()
 
 	if err != nil {
@@ -90,8 +88,7 @@ func open(cfb *Cfb) (err error) {
 }
 
 func (cfb *Cfb) getHeader() (err error) {
-
-	var bHeader = make([]byte, 4096)
+	bHeader := make([]byte, 4096)
 
 	_, err = cfb.file.Read(bHeader)
 
@@ -111,13 +108,11 @@ func (cfb *Cfb) getHeader() (err error) {
 }
 
 func (cfb *Cfb) getDirectories() (err error) {
-
 	stream, err := cfb.getDataFromFatChain(helpers.BytesToUint32(cfb.header.FirstDirectorySectorLocation[:]))
-
 	if err != nil {
 		return err
 	}
-	var section = make([]byte, 0)
+	section := make([]byte, 0)
 
 	for _, value := range stream {
 		section = append(section, value)
@@ -134,19 +129,16 @@ func (cfb *Cfb) getDirectories() (err error) {
 	}
 
 	return
-
 }
 
 func (cfb *Cfb) getMiniFATSectors() (err error) {
-
-	var section = make([]byte, 0)
+	section := make([]byte, 0)
 
 	position := cfb.calculateOffset(cfb.header.FirstMiniFATSectorLocation[:])
 
 	for i := uint32(0); i < helpers.BytesToUint32(cfb.header.NumberMiniFATSectors[:]); i++ {
 		sector := NewSector(&cfb.header)
 		err := cfb.getData(position, &sector.Data)
-
 		if err != nil {
 			return err
 		}
@@ -178,7 +170,6 @@ func (cfb *Cfb) getFatSectors() (err error) { // nolint: gocyclo
 		sector := NewSector(&cfb.header)
 
 		err := cfb.getData(position, &sector.Data)
-
 		if err != nil {
 			return err
 		}
@@ -187,16 +178,15 @@ func (cfb *Cfb) getFatSectors() (err error) { // nolint: gocyclo
 
 	}
 
-	if bytes.Compare(cfb.header.FirstDIFATSectorLocation[:], ENDOFCHAIN) == 0 {
+	if bytes.Equal(cfb.header.FirstDIFATSectorLocation[:], ENDOFCHAIN) {
 		return
 	}
 
 	position := cfb.calculateOffset(cfb.header.FirstDIFATSectorLocation[:])
-	var section = make([]byte, 0)
+	section := make([]byte, 0)
 	for i := uint32(0); i < helpers.BytesToUint32(cfb.header.NumberDIFATSectors[:]); i++ {
 		sector := NewSector(&cfb.header)
 		err := cfb.getData(position, &sector.Data)
-
 		if err != nil {
 			return err
 		}
@@ -208,7 +198,6 @@ func (cfb *Cfb) getFatSectors() (err error) { // nolint: gocyclo
 				position = cfb.calculateOffset(section)
 				sectorF := NewSector(&cfb.header)
 				err := cfb.getData(position, &sectorF.Data)
-
 				if err != nil {
 					return err
 				}
@@ -225,8 +214,8 @@ func (cfb *Cfb) getFatSectors() (err error) { // nolint: gocyclo
 
 	return
 }
-func (cfb *Cfb) getDataFromMiniFat(miniFatSectorLocation uint32, offset uint32) (data []byte, err error) {
 
+func (cfb *Cfb) getDataFromMiniFat(miniFatSectorLocation uint32, offset uint32) (data []byte, err error) {
 	sPoint := cfb.sectorOffset(miniFatSectorLocation)
 	point := sPoint + cfb.calculateMiniFatOffset(offset)
 
@@ -256,7 +245,6 @@ func (cfb *Cfb) getDataFromMiniFat(miniFatSectorLocation uint32, offset uint32) 
 }
 
 func (cfb *Cfb) getDataFromFatChain(offset uint32) (data []byte, err error) {
-
 	for {
 		sector := NewSector(&cfb.header)
 		point := cfb.sectorOffset(offset)
@@ -279,11 +267,9 @@ func (cfb *Cfb) getDataFromFatChain(offset uint32) (data []byte, err error) {
 
 // OpenObject - Get object stream
 func (cfb *Cfb) OpenObject(object *Directory, root *Directory) (reader io.ReadSeeker, err error) {
-
 	if helpers.BytesToUint32(object.StreamSize[:]) < uint32(helpers.BytesToUint16(cfb.header.MiniStreamCutoffSize[:])) {
 
 		data, err := cfb.getDataFromMiniFat(root.GetStartingSectorLocation(), object.GetStartingSectorLocation())
-
 		if err != nil {
 			return reader, err
 		}
@@ -292,7 +278,6 @@ func (cfb *Cfb) OpenObject(object *Directory, root *Directory) (reader io.ReadSe
 	} else {
 
 		data, err := cfb.getDataFromFatChain(object.GetStartingSectorLocation())
-
 		if err != nil {
 			return reader, err
 		}
@@ -305,7 +290,6 @@ func (cfb *Cfb) OpenObject(object *Directory, root *Directory) (reader io.ReadSe
 }
 
 func (cfb *Cfb) getData(offset uint32, data *[]byte) (err error) {
-
 	_, err = cfb.file.Seek(int64(offset), 0)
 
 	if err != nil {
@@ -318,7 +302,6 @@ func (cfb *Cfb) getData(offset uint32, data *[]byte) (err error) {
 		return
 	}
 	return
-
 }
 
 func (cfb *Cfb) sectorOffset(sid uint32) uint32 {
@@ -326,12 +309,10 @@ func (cfb *Cfb) sectorOffset(sid uint32) uint32 {
 }
 
 func (cfb *Cfb) calculateMiniFatOffset(sid uint32) (n uint32) {
-
 	return sid * 64
 }
 
 func (cfb *Cfb) calculateOffset(sectorID []byte) (n uint32) {
-
 	if len(sectorID) == 4 {
 		n = helpers.BytesToUint32(sectorID)
 	}
